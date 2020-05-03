@@ -1,5 +1,4 @@
 const request = require('request');
-const fs = require('fs');
 const async = require('async');
 const _ = require('underscore')
 const amqp = require('amqplib');
