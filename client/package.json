@@ -1,0 +1,22 @@
+{
+  "name": "crawler-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "sn_baby",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.5",
+    "assert": "^2.0.0",
+    "baidu-aip-sdk": "^2.4.4",
+    "chalk": "^2.4.2",
+    "eslint": "^6.4.0",
+    "fs": "0.0.1-security",
+    "mysql": "^2.17.1",
+    "puppeteer": "^1.20.0",
+    "uuid": "^3.3.3"
+  }
+}

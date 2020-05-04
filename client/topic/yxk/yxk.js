@@ -1,6 +1,8 @@
+const util = require('util');
 const request = require('request');
 const _ = require('underscore')
 const amqp = require('amqplib');
+const getPromise = util.promisify(request.get);
 const application = require('../../core/application')
 const Promise = require('Promise');
 
@@ -166,8 +168,10 @@ amqp.connect(application.amqp).then(function (conn) {
 
         async function main(msg) {
             const message = JSON.parse(msg.content.toString());
-            const specialplan = await specialplanFunc(message.school_id);
-            console.log(specialplan)
+            //const specialplan = await specialplanFunc(message.school_id);
+			const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${message.school_id}/dic/specialplan.json`
+			const specialplan = await getPromise(specialPlanUrl, {});
+            console.log(JSON.parse(specialplan.body).data)
             // request({
             //     timeout: 5000,    // 设置超时
             //     method: 'GET',    //请求方式
