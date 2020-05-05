@@ -37,7 +37,7 @@ amqp.connect(application.amqp).then(function (conn) {
                     ignoreDefaultArgs: ["--enable-automation"],
                     args: ['--no-sandbox'],
                     headless: true,
-                    slowMo:500,
+                    slowMo:200,
                     defaultViewport: {
                         width: 1440,
                         height: 800

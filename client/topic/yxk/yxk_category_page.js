@@ -3,7 +3,7 @@ const application = require('../../core/application')
 const puppeteer = require('puppeteer'); //引入puppeteer库.
 const antiDetect = require('../../core/antiDetect')
 
-const topic = 'yxk_category';
+const topic = 'yxk_category_page';
 
 // 连接rabbitmq 账户:密码@地址:端口
 amqp.connect(application.amqp).then(function (conn) {
@@ -24,6 +24,7 @@ amqp.connect(application.amqp).then(function (conn) {
             const message = JSON.parse(msg.content.toString());
 
             let browser = null;
+            let pageNo = message.pageNo;
             let name = message.name;
             let year = message.year;
             let pName = message.pName;
@@ -51,6 +52,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 let pSelectId = await page.evaluate(() => {
                     return document.querySelector('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(1) > div > div').getAttribute('aria-controls');
                 })
+
                 await page.waitFor((pSelectId)=> !document.getElementById(pSelectId),pSelectId);
                 await page.evaluate((pName,pSelectId) => {
                     document.getElementById(pSelectId).querySelectorAll('ul li').forEach(item=>{
@@ -103,8 +105,6 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                 },bName,bSelectId)
 
-                console.log(pageNo)
-                console.log(pageNo !== '1')
                 if(pageNo !== '1'){
                     await page.evaluate((pageNo) => {
                         document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
@@ -114,15 +114,32 @@ amqp.connect(application.amqp).then(function (conn) {
                         })
                     },pageNo)
                 }
-
                 await page.waitFor(10000);//等待10S
+
+                let results = await page.evaluate(()=>{
+                    let results = []
+                    document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.line_table_box.recruit_table > table tr').forEach(tr=>{
+                        let tds = tr.querySelectorAll('td');
+                        if(tds.length === 5){
+                            results.push({
+                                'major':tds[0].innerText,
+                                'secondLevel':tds[1].innerText,
+                                'subject1':tds[2].innerText,
+                                'planRecruit':tds[3].innerText,
+                                'school_system':tds[4].innerText
+                            })
+                        }
+                    })
+                    return results
+                })
+                console.log(results)
             } catch (e) {
                 console.error(e)
             } finally {
-                if (browser) {
-                    await browser.close()
-                }
-                ch.ack(msg)
+                // if (browser) {
+                //     await browser.close()
+                // }
+                // ch.ack(msg)
             }
         }
     });
