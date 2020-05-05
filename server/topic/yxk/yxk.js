@@ -74,6 +74,7 @@ const main = function(){
             });
         }
     ], function (err, result) {
+        console.log(err)
             amqp.connect(application.amqp).then(function (conn) {
                 return conn.createChannel().then(function (ch) {
                     let ok = ch.assertQueue(topic, {durable: true});

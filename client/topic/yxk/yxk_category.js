@@ -36,7 +36,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
                     args: ['--no-sandbox'],
-                    headless: false,
+                    headless: true,
                     slowMo:500,
                     defaultViewport: {
                         width: 1440,
@@ -121,6 +121,7 @@ amqp.connect(application.amqp).then(function (conn) {
                     let tempObj = Object.assign({
                         'pageNo':pageNo
                     }, message);
+                    console.log(name,pName,tName,year,bName,pageNo)
                     await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
                 }
             } catch (e) {
