@@ -132,7 +132,28 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                     return results
                 })
-                console.log(results)
+
+                results.forEach(result =>{
+
+                })
+
+                for(let i in results){
+                    const result = results[i];
+                    const option = Object.assign({
+                        'id': uuid.v1(),
+                        'name':name,
+                        'local':pName,
+                        'majorType':tName,
+                        'particularYear':year,
+                        'batch':bName,
+                        'create_time':new Date(),
+                        'website':provincelineUrl,
+                        'link':provincelineUrl,
+                        'spider_name':topic,
+                        'module_name':'院校库-专业招生'
+                    }, result);
+                    await pool.query(`insert into recruit_plan_library set ?`, [option])
+                }
             } catch (e) {
                 console.error(e)
             } finally {

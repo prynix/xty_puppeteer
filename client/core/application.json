@@ -1,11 +1,11 @@
 {
   "db": {
     "connectionLimit": 10,
-    "host": "10.8.32.125",
+    "host": "rm-8vbif49m6k7l651e5fo.mysql.zhangbei.rds.aliyuncs.com",
     "port": "3306",
     "user": "root",
-    "password": "Admin123!",
-    "database": "engineering-brain"
+    "password": "Lqin1988",
+    "database": "python"
   },
   "amqp": "amqp://guest:guest@47.57.108.128:5672/"
 }
