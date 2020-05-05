@@ -38,8 +38,8 @@ amqp.connect(application.amqp).then(function (conn) {
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
                     args: ['--no-sandbox'],
-                    headless: false,
-                    slowMo:500,
+                    headless: true,
+                    slowMo:100,
                     defaultViewport: {
                         width: 1440,
                         height: 800
@@ -150,15 +150,21 @@ amqp.connect(application.amqp).then(function (conn) {
                         'spider_name':topic,
                         'module_name':'院校库-专业招生'
                     }, result);
-                    await pool.query(`insert into recruit_plan_library set ?`, [option])
+
+                    try {
+                        await pool.query(`insert into recruit_plan_library set ?`, [option])
+                    }catch (e) {
+                        console.error(e)
+                    }
+
                 }
+                ch.ack(msg)
             } catch (e) {
                 console.error(e)
             } finally {
                 if (browser) {
                     await browser.close()
                 }
-                ch.ack(msg)
             }
         }
     });
