@@ -2,6 +2,8 @@ const amqp = require('amqplib');
 const application = require('../../core/application')
 const puppeteer = require('puppeteer'); //引入puppeteer库.
 const antiDetect = require('../../core/antiDetect')
+const uuid = require('uuid');
+const pool = require('../../core/pool')
 
 const topic = 'yxk_category_page';
 
@@ -133,14 +135,10 @@ amqp.connect(application.amqp).then(function (conn) {
                     return results
                 })
 
-                results.forEach(result =>{
-
-                })
-
                 for(let i in results){
                     const result = results[i];
                     const option = Object.assign({
-                        'id': uuid.v1(),
+                        // 'id': uuid.v1(),
                         'name':name,
                         'local':pName,
                         'majorType':tName,
@@ -157,10 +155,10 @@ amqp.connect(application.amqp).then(function (conn) {
             } catch (e) {
                 console.error(e)
             } finally {
-                // if (browser) {
-                //     await browser.close()
-                // }
-                // ch.ack(msg)
+                if (browser) {
+                    await browser.close()
+                }
+                ch.ack(msg)
             }
         }
     });
