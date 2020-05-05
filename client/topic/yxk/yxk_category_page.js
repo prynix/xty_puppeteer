@@ -4,7 +4,6 @@ const puppeteer = require('puppeteer'); //引入puppeteer库.
 const antiDetect = require('../../core/antiDetect')
 
 const topic = 'yxk_category';
-const next_topic = 'yxk_category_page';
 
 // 连接rabbitmq 账户:密码@地址:端口
 amqp.connect(application.amqp).then(function (conn) {
@@ -30,7 +29,7 @@ amqp.connect(application.amqp).then(function (conn) {
             let pName = message.pName;
             let tName = message.tName;
             let bName = message.bName;
-            console.log(name,pName,tName,year,bName)
+            console.log(name,pName,tName,year,bName,pageNo)
             try {
                 const provincelineUrl = `https://gkcx.eol.cn/school/${message.school_id}/provinceline`
                 browser = await puppeteer.launch({
@@ -104,25 +103,19 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                 },bName,bSelectId)
 
-                await page.waitFor(10000);//等待10S
-
-                let pages = await page.evaluate(() => {
-                    let pages = []
-                    document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
-                        if(li.getAttribute('title') != 'Previous Page' && li.getAttribute('title') != 'Next Page'){
-                            pages.push(li.getAttribute('title'))
-                        }
-                    })
-                    return pages
-                })
-
-                for(let i in pages){
-                    const pageNo = pages[i]
-                    let tempObj = Object.assign({
-                        'pageNo':pageNo
-                    }, message);
-                    await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
+                console.log(pageNo)
+                console.log(pageNo !== '1')
+                if(pageNo !== '1'){
+                    await page.evaluate((pageNo) => {
+                        document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
+                            if(li.getAttribute('title') === pageNo){
+                                li.click()
+                            }
+                        })
+                    },pageNo)
                 }
+
+                await page.waitFor(10000);//等待10S
             } catch (e) {
                 console.error(e)
             } finally {
