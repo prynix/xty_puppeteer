@@ -4,10 +4,9 @@ const _ = require('underscore')
 const amqp = require('amqplib');
 const getPromise = util.promisify(request.get);
 const application = require('../../core/application')
-const Promise = require('Promise');
 
 const topic = 'yxk';
-
+const next_topic = 'yxk_category'
 const province = {
     11: "北京",
     12: "天津",
@@ -132,25 +131,6 @@ const kelei = {
     1: "理科"
 }
 
-const specialplanFunc = function(school_id){
-    const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${school_id}/dic/specialplan.json`
-    return new Promise(function(resolve,reject){
-        request({
-            timeout: 5000,    // 设置超时
-            method: 'GET',    //请求方式
-            url: specialPlanUrl, //url
-            json: true
-
-        }, function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                resolve(body.data.data)
-            } else {
-                reject(error)
-            }
-        });
-    });
-}
-
 // 连接rabbitmq 账户:密码@地址:端口
 amqp.connect(application.amqp).then(function (conn) {
     // 创建会话队列
@@ -168,33 +148,37 @@ amqp.connect(application.amqp).then(function (conn) {
 
         async function main(msg) {
             const message = JSON.parse(msg.content.toString());
-            //const specialplan = await specialplanFunc(message.school_id);
-			const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${message.school_id}/dic/specialplan.json`
-			const specialplan = await getPromise(specialPlanUrl, {});
-            console.log(JSON.parse(specialplan.body).data)
-            // request({
-            //     timeout: 5000,    // 设置超时
-            //     method: 'GET',    //请求方式
-            //     url: specialPlanUrl, //url
-            //     json: true
-            //
-            // }, function (error, response, body) {
-            //     if (!error && response.statusCode == 200) {
-            //         body.data.data.forEach(item => {
-            //             const year = item.year;
-            //             item.province.forEach(temp => {
-            //                 let pName = province[temp.pid]
-            //                 temp.type.forEach(type =>{
-            //                     temp.batch.forEach(batch=>{
-            //
-            //                     })
-            //                 })
-            //             })
-            //         })
-            //     } else {
-            //
-            //     }
-            // });
+            try{
+                const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${message.school_id}/dic/specialplan.json`
+                const specialplan = await getPromise(specialPlanUrl, {});
+                for(let i in JSON.parse(specialplan.body).data.data){
+                    const item  = JSON.parse(specialplan.body).data.data[i]
+                    const year = item.year;
+                    for(let j in item.province){
+                        const temp = item.province[j]
+                        const pName = province[temp.pid]
+                        for(let k in temp.type){
+                            const type = temp.type[k]
+                            const tName=kelei[type]
+                            for(let l in temp.batch){
+                                const batch = temp.batch[l]
+                                const bName=kelei[batch]
+                                message['pName'] = pName
+                                message['tName'] = tName
+                                message['year'] = year
+                                message['bName'] = bName
+                                await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(message)));
+                            }
+                        }
+                    }
+                }
+            }catch (e) {
+                console.error(e)
+            }finally {
+                console.log(`${message.name}--${message.school_id}--category 爬取完成`)
+                ch.ack(msg)
+            }
+
         }
     });
 }).catch(console.warn);
