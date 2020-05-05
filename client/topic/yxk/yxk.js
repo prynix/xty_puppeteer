@@ -150,6 +150,7 @@ amqp.connect(application.amqp).then(function (conn) {
         async function main(msg) {
             const message = JSON.parse(msg.content.toString());
             try {
+                console.log(`${message.name}--${message.school_id}--category 爬取开始`)
                 const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${message.school_id}/dic/specialplan.json`
                 const specialplan = await getPromise(specialPlanUrl, {});
                 for (let i in JSON.parse(specialplan.body).data.data) {
@@ -171,7 +172,6 @@ amqp.connect(application.amqp).then(function (conn) {
                                     'bName':bName,
                                 }, message);
                                 await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
-
                             }
                         }
                     }
