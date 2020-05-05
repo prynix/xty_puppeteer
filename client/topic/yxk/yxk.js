@@ -4,6 +4,7 @@ const _ = require('underscore')
 const amqp = require('amqplib');
 const getPromise = util.promisify(request.get);
 const application = require('../../core/application')
+const puppeteer = require('puppeteer'); //引入puppeteer库.
 
 const topic = 'yxk';
 const next_topic = 'yxk_category'
@@ -148,33 +149,73 @@ amqp.connect(application.amqp).then(function (conn) {
 
         async function main(msg) {
             const message = JSON.parse(msg.content.toString());
-            try{
+
+            let browser = null;
+            let pages = [];
+            try {
+                const provincelineUrl = `https://gkcx.eol.cn/school/${message.school_id}/provinceline`
+                browser = await puppeteer.launch({
+                    ignoreDefaultArgs: ["--enable-automation"],
+                    args: ['--no-sandbox'],
+                    headless: true,
+                    defaultViewport: {
+                        width: 1440,
+                        height: 800
+                    }
+                });
+                const page = await browser.newPage(); //创建一页面.
+                await page.goto(provincelineUrl, {timeout: 300000}); //到指定页面的网址.
+                pages = await page.evaluate(() => {
+                    let pages = []
+                    document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
+                        if(li.getAttribute('title') != 'Previous Page' && li.getAttribute('title') != 'Next Page'){
+                            pages.push(li.getAttribute('title'))
+                        }
+                    })
+                    return pages
+                })
+            } catch (e) {
+                console.error(e)
+            } finally {
+                if (browser) {
+                    await browser.close()
+                }
+            }
+
+            try {
                 const specialPlanUrl = `https://static-data.eol.cn/www/2.0/school/${message.school_id}/dic/specialplan.json`
                 const specialplan = await getPromise(specialPlanUrl, {});
-                for(let i in JSON.parse(specialplan.body).data.data){
-                    const item  = JSON.parse(specialplan.body).data.data[i]
+                for (let i in JSON.parse(specialplan.body).data.data) {
+                    const item = JSON.parse(specialplan.body).data.data[i]
                     const year = item.year;
-                    for(let j in item.province){
+                    for (let j in item.province) {
                         const temp = item.province[j]
                         const pName = province[temp.pid]
-                        for(let k in temp.type){
+                        for (let k in temp.type) {
                             const type = temp.type[k]
-                            const tName=kelei[type]
-                            for(let l in temp.batch){
+                            const tName = kelei[type]
+                            for (let l in temp.batch) {
                                 const batch = temp.batch[l]
-                                const bName=kelei[batch]
-                                message['pName'] = pName
-                                message['tName'] = tName
-                                message['year'] = year
-                                message['bName'] = bName
-                                await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(message)));
+                                const bName = kelei[batch]
+                                for(let m in pages){
+                                    const page = pages[m]
+
+                                    let tempObj = Object.assign({
+                                        'page':page,
+                                        'year':year,
+                                        'pName':pName,
+                                        'tName':tName,
+                                        'bName':bName,
+                                    }, message);
+                                    await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
+                                }
                             }
                         }
                     }
                 }
-            }catch (e) {
+            } catch (e) {
                 console.error(e)
-            }finally {
+            } finally {
                 console.log(`${message.name}--${message.school_id}--category 爬取完成`)
                 ch.ack(msg)
             }
