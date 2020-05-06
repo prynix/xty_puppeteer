@@ -37,7 +37,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 const provincelineUrl = `https://gkcx.eol.cn/school/${message.school_id}/provinceline`
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
-                    args: ['--no-sandbox'],
+                    args: ['--no-sandbox','--proxy-server=http://localhost:5010'],
                     headless: true,
                     slowMo:500,
                     defaultViewport: {
