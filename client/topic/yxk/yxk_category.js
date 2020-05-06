@@ -45,7 +45,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 });
                 const page = await browser.newPage(); //创建一页面.
                 await antiDetect(page);
-                await page.goto(provincelineUrl, {timeout: 300000}); //到指定页面的网址.
+                await page.goto(provincelineUrl, {timeout: 30000}); //到指定页面的网址.
 
                 await page.waitFor('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(1) > div > div');//等待下拉框出现
                 await page.click('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(1) > div > div');//展开下拉框
