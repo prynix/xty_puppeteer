@@ -3,12 +3,15 @@ const url  = require("url");
 
 
 // 要访问的目标页面
-const targetUrl = "http://dev.kdlapi.com/testproxy";
+// const targetUrl = "http://dev.kdlapi.com/testproxy";
+const targetUrl = "/testproxy";
 const urlParsed   = url.parse(targetUrl);
 
 // 代理ip,由快代理提供
-const proxyIp = "localhost";  // 代理服务器ip
-const proxyPort = "5010"; // 代理服务器host
+// const proxyIp = "localhost";  // 代理服务器ip
+// const proxyPort = "5010"; // 代理服务器host
+// const proxyIp = "dev.kdlapi.com"; // 代理服务器host
+// const proxyPort = "80"; // 代理服务器host
 
 // http代理验证信息
 const options = {
@@ -16,9 +19,9 @@ const options = {
     port    : proxyPort,
     path    : targetUrl,
     method  : "GET",
-    headers : {
-        "Host": urlParsed.hostname,
-    }
+    // headers : {
+    //     "Host": urlParsed.hostname,
+    // }
 };
 
 http.request(options,  (res) => {
