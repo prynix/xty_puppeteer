@@ -16,3 +16,4 @@ function getProxyIp(){
     })
 
 }
+getProxyIp()
