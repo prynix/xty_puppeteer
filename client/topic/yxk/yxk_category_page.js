@@ -37,7 +37,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 const provincelineUrl = `https://gkcx.eol.cn/school/${message.school_id}/provinceline`
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
-                    args: ['--no-sandbox','--proxy-server=http://localhost:5010'],
+                    args: ['--no-sandbox'],
                     headless: true,
                     slowMo:500,
                     defaultViewport: {
@@ -163,13 +163,14 @@ amqp.connect(application.amqp).then(function (conn) {
                     }
 
                 }
-                ch.ack(msg)
             } catch (e) {
                 console.error(e)
+                await ch.sendToQueue('yxk_category_page_error', Buffer.from(JSON.stringify(message)));
             } finally {
                 if (browser) {
                     await browser.close()
                 }
+                ch.ack(msg)
             }
         }
     });
