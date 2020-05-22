@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer'); //引入puppeteer库.
 const antiDetect = require('../../core/antiDetect')
 
 const topic = 'yxk_category';
-const next_topic = 'yxk_category_page';
+const next_topic = 'yxk_category_page_new';
 
 // 连接rabbitmq 账户:密码@地址:端口
 amqp.connect(application.amqp).then(function (conn) {
@@ -36,7 +36,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
                     args: ['--no-sandbox'],
-                    headless: true,
+                    headless: false,
                     slowMo:200,
                     defaultViewport: {
                         width: 1440,
@@ -61,6 +61,19 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                 },pName,pSelectId)
 
+                await page.waitFor('#select0 > div');//等待下拉框出现
+                await page.click('#select0 > div');//展开下拉框
+                let ySelectId = await page.evaluate(() => {
+                    return document.querySelector('#select0 > div').getAttribute('aria-controls');
+                })
+                await page.waitFor((ySelectId)=> !document.getElementById(ySelectId),ySelectId);
+                await page.evaluate((year,ySelectId) => {
+                    document.getElementById(ySelectId).querySelectorAll('ul li').forEach(item=>{
+                        if(item.innerText == year){
+                            item.click()
+                        }
+                    })
+                },year,ySelectId)
 
                 await page.waitFor('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(2) > div > div');//等待下拉框出现
                 await page.click('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(2) > div > div');//展开下拉框
@@ -75,20 +88,6 @@ amqp.connect(application.amqp).then(function (conn) {
                         }
                     })
                 },tName,tSelectId)
-
-                await page.waitFor('#select0 > div');//等待下拉框出现
-                await page.click('#select0 > div');//展开下拉框
-                let ySelectId = await page.evaluate(() => {
-                    return document.querySelector('#select0 > div').getAttribute('aria-controls');
-                })
-                await page.waitFor((ySelectId)=> !document.getElementById(ySelectId),ySelectId);
-                await page.evaluate((year,ySelectId) => {
-                    document.getElementById(ySelectId).querySelectorAll('ul li').forEach(item=>{
-                        if(item.innerText == year){
-                            item.click()
-                        }
-                    })
-                },year,ySelectId)
 
                 await page.waitFor('#form2 > div > div > div > span > div > div');//等待下拉框出现
                 await page.click('#form2 > div > div > div > span > div > div');//展开下拉框
@@ -116,16 +115,15 @@ amqp.connect(application.amqp).then(function (conn) {
                     return pages
                 })
 
-                for(let i in pages){
-                    const pageNo = pages[i]
-                    let tempObj = Object.assign({
-                        'pageNo':pageNo
-                    }, message);
-                    console.log(name,pName,tName,year,bName,pageNo)
-                    await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
-                }
+                const pageNo = pages.pop()
+                let tempObj = Object.assign({
+                    'pageNo':pageNo
+                }, message);
+                console.log(name,pName,tName,year,bName,pageNo)
+                await ch.sendToQueue(next_topic, Buffer.from(JSON.stringify(tempObj)));
             } catch (e) {
                 console.error(e)
+                await ch.sendToQueue('yxk_category_error', Buffer.from(JSON.stringify(message)));
             } finally {
                 if (browser) {
                     await browser.close()

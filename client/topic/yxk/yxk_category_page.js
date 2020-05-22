@@ -5,7 +5,7 @@ const antiDetect = require('../../core/antiDetect')
 const uuid = require('uuid');
 const pool = require('../../core/pool')
 
-const topic = 'yxk_category_page';
+const topic = 'yxk_category_page_new';
 
 let log4js = require('log4js')
 log4js.configure({
@@ -49,7 +49,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 browser = await puppeteer.launch({
                     ignoreDefaultArgs: ["--enable-automation"],
                     args: ['--no-sandbox'],
-                    headless: true,
+                    headless: false,
                     slowMo:500,
                     defaultViewport: {
                         width: 1440,
@@ -80,6 +80,19 @@ amqp.connect(application.amqp).then(function (conn) {
 
                 },pName,pSelectId)
 
+                await page.waitFor('#select0 > div');//等待下拉框出现
+                await page.click('#select0 > div');//展开下拉框
+                let ySelectId = await page.evaluate(() => {
+                    return document.querySelector('#select0 > div').getAttribute('aria-controls');
+                })
+                await page.waitFor((ySelectId)=> !document.getElementById(ySelectId),ySelectId);
+                await page.evaluate((year,ySelectId) => {
+                    document.getElementById(ySelectId).querySelectorAll('ul li').forEach(item=>{
+                        if(item.innerText == year){
+                            item.click()
+                        }
+                    })
+                },year,ySelectId)
 
                 await page.waitFor('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(2) > div > div');//等待下拉框出现
                 await page.click('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(2) > div > div');//展开下拉框
@@ -95,20 +108,6 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                 },tName,tSelectId)
 
-                await page.waitFor('#select0 > div');//等待下拉框出现
-                await page.click('#select0 > div');//展开下拉框
-                let ySelectId = await page.evaluate(() => {
-                    return document.querySelector('#select0 > div').getAttribute('aria-controls');
-                })
-                await page.waitFor((ySelectId)=> !document.getElementById(ySelectId),ySelectId);
-                await page.evaluate((year,ySelectId) => {
-                    document.getElementById(ySelectId).querySelectorAll('ul li').forEach(item=>{
-                        if(item.innerText == year){
-                            item.click()
-                        }
-                    })
-                },year,ySelectId)
-
                 await page.waitFor('#form2 > div > div > div > span > div > div');//等待下拉框出现
                 await page.click('#form2 > div > div > div > span > div > div');//展开下拉框
                 let bSelectId = await page.evaluate(() => {
@@ -122,24 +121,43 @@ amqp.connect(application.amqp).then(function (conn) {
                         }
                     })
                 },bName,bSelectId)
-
+                let results = []
                 if(pageNo !== '1'){
-                    await page.evaluate((pageNo) => {
-                        document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
-                            if(li.getAttribute('title') === pageNo){
-                                li.click()
-                            }
+                    for(let a =2;a<=pageNo;a++){
+                        let dd = await page.evaluate(()=>{
+                            let dd = []
+                            document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.line_table_box.recruit_table > table tr').forEach(tr=>{
+                                let tds = tr.querySelectorAll('td');
+                                if(tds.length === 5){
+                                    dd.push({
+                                        'major':tds[0].innerText,
+                                        'secondLevel':tds[1].innerText,
+                                        'subject1':tds[2].innerText,
+                                        'planRecruit':tds[3].innerText,
+                                        'school_system':tds[4].innerText
+                                    })
+                                }
+                            })
+                            return dd
                         })
-                    },pageNo)
+                        results = results.concat(dd)
+                        await page.evaluate((a) => {
+                            document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.table_pagination_box > div > div ul li').forEach(li=>{
+                                if(li.getAttribute('title') == a){
+                                    li.click()
+                                }
+                            })
+                        },a)
+                        await page.waitFor(5000);//等待10S
+                    }
                 }
-                await page.waitFor(2000);//等待10S
-
-                let results = await page.evaluate(()=>{
-                    let results = []
+                await page.waitFor(5000);//等待10S
+                let dd = await page.evaluate(()=>{
+                    let dd = []
                     document.querySelectorAll('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.province_score_line_table > div.line_table_box.recruit_table > table tr').forEach(tr=>{
                         let tds = tr.querySelectorAll('td');
                         if(tds.length === 5){
-                            results.push({
+                            dd.push({
                                 'major':tds[0].innerText,
                                 'secondLevel':tds[1].innerText,
                                 'subject1':tds[2].innerText,
@@ -148,8 +166,9 @@ amqp.connect(application.amqp).then(function (conn) {
                             })
                         }
                     })
-                    return results
+                    return dd
                 })
+                results = results.concat(dd)
 				logger.info('results length==', results.length)
                 for(let i in results){
                     const result = results[i];
