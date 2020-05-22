@@ -7,6 +7,16 @@ const pool = require('../../core/pool')
 
 const topic = 'yxk_category_page';
 
+let log4js = require('log4js')
+log4js.configure({
+    appenders: { UI: { type: 'file', filename: 'electron.log' } },
+    categories: { default: { appenders: ['UI'], level: 'info' } }
+})
+
+let logger = log4js.getLogger('UI')
+
+logger.info('日志初始化成功')
+
 // 连接rabbitmq 账户:密码@地址:端口
 amqp.connect(application.amqp).then(function (conn) {
     // 创建会话队列
@@ -33,6 +43,7 @@ amqp.connect(application.amqp).then(function (conn) {
             let tName = message.tName;
             let bName = message.bName;
             console.log(name,pName,tName,year,bName,pageNo)
+			logger.info('start ',name,pName,tName,year,bName,pageNo,message.school_id)
             try {
                 const provincelineUrl = `https://gkcx.eol.cn/school/${message.school_id}/provinceline`
                 browser = await puppeteer.launch({
@@ -47,7 +58,7 @@ amqp.connect(application.amqp).then(function (conn) {
                 });
                 const page = await browser.newPage(); //创建一页面.
                 await antiDetect(page);
-                await page.goto(provincelineUrl, {timeout: 30000}); //到指定页面的网址.
+                await page.goto(provincelineUrl, {timeout: 15000}); //到指定页面的网址.
 
                 await page.waitFor('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(1) > div > div');//等待下拉框出现
                 await page.click('#root > div > div > div > div > div > div > div.main.school_tab_wrap > div.school-content.school_content_1_4.clearfix > div.school_content_left_1_4 > div > div:nth-child(2) > div.content-top.content_top_1_4 > div > div:nth-child(1) > div > div');//展开下拉框
@@ -121,7 +132,7 @@ amqp.connect(application.amqp).then(function (conn) {
                         })
                     },pageNo)
                 }
-                await page.waitFor(10000);//等待10S
+                await page.waitFor(2000);//等待10S
 
                 let results = await page.evaluate(()=>{
                     let results = []
@@ -139,7 +150,7 @@ amqp.connect(application.amqp).then(function (conn) {
                     })
                     return results
                 })
-
+				logger.info('results length==', results.length)
                 for(let i in results){
                     const result = results[i];
                     const option = Object.assign({
@@ -158,6 +169,7 @@ amqp.connect(application.amqp).then(function (conn) {
 
                     try {
                         await pool.query(`insert into recruit_plan_library set ?`, [option])
+						logger.info('insert into mysql...')
                     }catch (e) {
                         console.error(e)
                     }
